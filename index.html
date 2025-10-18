@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Nirvana Song Player</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+                background: url("https://cdn.wallpapersafari.com/4/60/kMjXl7.png")
+                    center/cover no-repeat fixed;
+                min-height: 100vh;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                padding: 20px;
+            }
+
+            .container {
+                /* Changed white to semi-transparent white (rgba) */
+                background: rgba(255, 255, 255, 0.85); /* 85% opaque white */
+                backdrop-filter: blur(
+                    5px
+                ); /* Optional: Adds a subtle blur effect to content behind it */
+                border-radius: 20px;
+                padding: 40px;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                max-width: 600px;
+                width: 100%;
+            }
+            h1 {
+                text-align: center;
+                color: #333;
+                margin-bottom: 30px;
+                font-size: 32px;
+            }
+
+            .player-section {
+                margin-bottom: 30px;
+            }
+
+            audio {
+                width: 100%;
+                margin-bottom: 20px;
+                border-radius: 10px;
+            }
+
+            .song-list {
+                display: flex;
+                flex-direction: column;
+                gap: 15px;
+                margin-bottom: 20px;
+            }
+
+            .song-item {
+                display: flex;
+                gap: 10px;
+                align-items: stretch;
+            }
+
+            .song-button {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border: none;
+                padding: 15px 20px;
+                font-size: 16px;
+                border-radius: 10px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                flex: 1;
+            }
+
+            .lyrics-button {
+                background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+                color: white;
+                border: none;
+                padding: 15px 20px;
+                font-size: 14px;
+                border-radius: 10px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            }
+
+            .song-button:hover,
+            .lyrics-button:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+            }
+
+            .song-button:active,
+            .lyrics-button:active {
+                transform: translateY(0);
+            }
+
+            .song-button.playing {
+                background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            }
+
+            .song-number {
+                background: rgba(255, 255, 255, 0.3);
+                width: 30px;
+                height: 30px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: bold;
+            }
+
+            .song-title {
+                flex: 1;
+                font-weight: 500;
+            }
+
+            .now-playing {
+                text-align: center;
+                color: #666;
+                margin-top: 20px;
+                font-style: italic;
+            }
+
+            .status {
+                min-height: 20px;
+            }
+
+            .lyrics-display {
+                background: #f5f5f5;
+                padding: 20px;
+                border-radius: 10px;
+                margin-top: 20px;
+                white-space: pre-wrap;
+                max-height: 300px;
+                overflow-y: auto;
+                font-family: monospace;
+                display: none;
+            }
+
+            .lyrics-display.show {
+                display: block;
+            }
+
+            @keyframes pulse {
+                0%,
+                100% {
+                    opacity: 1;
+                }
+                50% {
+                    opacity: 0.5;
+                }
+            }
+
+            .playing .song-number {
+                animation: pulse 1.5s ease-in-out infinite;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🎸 Nirvana Playlist</h1>
+
+            <div class="player-section">
+                <audio id="audioPlayer" controls>
+                    Your browser does not support the audio element.
+                </audio>
+            </div>
+
+            <div class="song-list">
+                <div class="song-item">
+                    <button
+                        class="song-button"
+                        onclick="playSong(1, this, 'Smells Like Teen Spirit')"
+                    >
+                        <span class="song-number">1</span>
+                        <span class="song-title">Smells Like Teen Spirit</span>
+                        <span>▶</span>
+                    </button>
+                    <button class="lyrics-button" onclick="showLyrics(1)">
+                        📝 Lyrics
+                    </button>
+                </div>
+
+                <div class="song-item">
+                    <button
+                        class="song-button"
+                        onclick="playSong(2, this, 'Dumb')"
+                    >
+                        <span class="song-number">2</span>
+                        <span class="song-title">Dumb</span>
+                        <span>▶</span>
+                    </button>
+                    <button class="lyrics-button" onclick="showLyrics(2)">
+                        📝 Lyrics
+                    </button>
+                </div>
+
+                <div class="song-item">
+                    <button
+                        class="song-button"
+                        onclick="playSong(3, this, 'All Apologies')"
+                    >
+                        <span class="song-number">3</span>
+                        <span class="song-title">All Apologies</span>
+                        <span>▶</span>
+                    </button>
+                    <button class="lyrics-button" onclick="showLyrics(3)">
+                        📝 Lyrics
+                    </button>
+                </div>
+            </div>
+
+            <div class="lyrics-display" id="lyricsDisplay"></div>
+
+            <div class="now-playing">
+                <div class="status" id="statusText"></div>
+            </div>
+        </div>
+
+        <script>
+            const player = document.getElementById("audioPlayer");
+            const statusText = document.getElementById("statusText");
+            const lyricsDisplay = document.getElementById("lyricsDisplay");
+            let currentButton = null;
+
+            function playSong(songId, button, songName) {
+                // Remove 'playing' class from all buttons
+                document.querySelectorAll(".song-button").forEach((btn) => {
+                    btn.classList.remove("playing");
+                });
+
+                // Add 'playing' class to clicked button
+                button.classList.add("playing");
+                currentButton = button;
+
+                // This creates an HTTP GET request to: GET /play/1 HTTP/1.1
+                player.src = "/play/" + songId;
+                player.play();
+
+                // Update status
+                statusText.textContent = `Now playing: ${songName}`;
+
+                // Hide lyrics when new song plays
+                lyricsDisplay.classList.remove("show");
+            }
+
+            function showLyrics(songId) {
+                // Fetch lyrics from server - creates HTTP GET request
+                fetch("/lyrics/" + songId)
+                    .then((response) => {
+                        if (!response.ok) {
+                            throw new Error("Lyrics not found");
+                        }
+                        return response.text();
+                    })
+                    .then((text) => {
+                        lyricsDisplay.textContent = text;
+                        lyricsDisplay.classList.add("show");
+                    })
+                    .catch((error) => {
+                        lyricsDisplay.textContent =
+                            "Error loading lyrics: " + error.message;
+                        lyricsDisplay.classList.add("show");
+                    });
+            }
+
+            // Remove playing class when song ends
+            player.addEventListener("ended", function () {
+                if (currentButton) {
+                    currentButton.classList.remove("playing");
+                }
+                statusText.textContent = "Song finished";
+            });
+
+            // Handle loading errors
+            player.addEventListener("error", function () {
+                statusText.textContent =
+                    "Error loading song. Check console for details.";
+                if (currentButton) {
+                    currentButton.classList.remove("playing");
+                }
+            });
+        </script>
+    </body>
+</html>
