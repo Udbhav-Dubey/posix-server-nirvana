@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <fstream>
 #include <sstream>
+#include <filesystem>
+namespace fs=std::filesystem;
 
 class Song{
     private:
@@ -21,6 +23,81 @@ class Song{
         std::string getName() const{return name;}
         std::string getmp3_file()const {return mp3_file;}
         std::string getlyrics_file() const {return lyrics_file;}
+        
+        std::string tojson()const{
+            std::ostringstream ss;
+            ss<<"   {\n";
+            ss<<"    \"id\": "<<id<<",\n";
+            ss<<"    \"name\": \""<<name<<"\",\n";
+            ss<<"    \"mp3\":\"" <<mp3_file<<"\",\n";
+            ss<<"    \"lyrics\": \""<<lyrics_file<<"\"\n";
+            return ss.str();
+        }
+};
+class SongLibrary{
+    private:
+        std::vector<Song>songs;
+    public :
+        void scanDirectory(const std::string&directory="."){
+            songs.clear();
+            std::vector<std::string>mp3Files;
+            try{
+                for (const auto &entry :fs::directory_iterator(directory)){
+                    if (entry.is_regular_file()){
+                        std::string filename=entry.path().filename().string();
+                        if (filename.length()>=4&&filename.substr(filename.length()-4)==".mp3"){
+                            mp3Files.push_back(filename);
+                        }
+                    }
+                }
+                //std::sort(mp3Files.begin(),mp3Files.end());
+                for (size_t i=0;i<mp3Files.size();i++){
+                    std::string base=mp3Files[i].substr(0,mp3Files.size()-4);
+                    std::string lyricsfile=base+".txt";
+                    if (!fs::exists(lyricsfile)){
+                        lyricsfile=""; 
+                    }
+                    songs.emplace_back(i,base,mp3Files[i],lyricsfile);
+                }
+                std::cout << "discovered " << songs.size() << " songs\n";
+                for (const auto&song:songs){
+                    std::cout << "  ["<<song.getId() << "] "<<song.getName();
+                    if (!song.getlyrics_file().empty()){
+                        std::cout << "lyrics found ";
+                    }
+                    std::cout << "\n";
+                }
+
+            }
+            catch (const fs::filesystem_error &e){
+                std::cerr<<"[error] filesystem error : " <<e.what() << "\n";
+            }
+        }
+        const Song*getSong(int id)const{
+            for (const auto &song:songs){
+                if (song.getId()==id){
+                    return &song;
+                }
+            }
+            return nullptr;
+        }
+        size_t count() const{
+            return songs.size();
+        }
+        std::string ToJson() const{
+            std::ostringstream json;
+            json<<"{\n";
+            json<<" {\"count\": " << songs.size()<<",\n";
+            json<<" {\"songs\":[\n";
+            for (size_t i=0;i<songs.size();i++){
+                json<<songs[i].tojson();
+                if (i<songs.size()-1)json<<",";
+                json<<"\n";
+            }
+            json<<"]\n";
+            json<<"}\n";
+            return json.str();
+        }
 };
 class FileReader{
     public :
