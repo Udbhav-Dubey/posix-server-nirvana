@@ -8,6 +8,7 @@
 #include <fstream>
 #include <sstream>
 #include <filesystem>
+#include <algorithm>
 namespace fs=std::filesystem;
 
 class Song{
@@ -31,6 +32,7 @@ class Song{
             ss<<"    \"name\": \""<<name<<"\",\n";
             ss<<"    \"mp3\":\"" <<mp3_file<<"\",\n";
             ss<<"    \"lyrics\": \""<<lyrics_file<<"\"\n";
+            ss<<"   }";
             return ss.str();
         }
 };
@@ -50,9 +52,9 @@ class SongLibrary{
                         }
                     }
                 }
-                //std::sort(mp3Files.begin(),mp3Files.end());
+                std::sort(mp3Files.begin(),mp3Files.end());
                 for (size_t i=0;i<mp3Files.size();i++){
-                    std::string base=mp3Files[i].substr(0,mp3Files.size()-4);
+                    std::string base=mp3Files[i].substr(0,mp3Files[i].size()-4);
                     std::string lyricsfile=base+".txt";
                     if (!fs::exists(lyricsfile)){
                         lyricsfile=""; 
@@ -87,8 +89,8 @@ class SongLibrary{
         std::string ToJson() const{
             std::ostringstream json;
             json<<"{\n";
-            json<<" {\"count\": " << songs.size()<<",\n";
-            json<<" {\"songs\":[\n";
+            json<<" \"count\": " << songs.size()<<",\n";
+            json<<" \"songs\":[\n";
             for (size_t i=0;i<songs.size();i++){
                 json<<songs[i].tojson();
                 if (i<songs.size()-1)json<<",";
@@ -137,17 +139,80 @@ class HttpResponse{
             resp.SetBody("<html><body><h1> NOt found </h1></body></html>");
             return resp;
         }
+        static HttpResponse json(const std::string &data){
+            HttpResponse resp(200,"application/json");
+            resp.SetBody(data);
+            return resp;
+        }
 };
 class Router{
     private:
-        std::vector <Song>songs;
+        SongLibrary &library;
     public:
-        Router(){
+        Router(SongLibrary &lib):library(lib){};
+        /*Router(){
             songs.push_back(Song(1,"Smells like teen sprit ","smells.mp3","smells.txt"));
             songs.push_back(Song(2,"Dumb","dumb.mp3","dumb.txt"));
             songs.push_back(Song(3,"All Apologies","apologies.mp3","apologies.txt"));
-        }
+        }*/
         HttpResponse route(const std::string & path){
+            if (path=="/api/songs"){
+                return HttpResponse::json(library.ToJson());
+            }
+            if (path.rfind("/api/play/",0)==0&&path.length()>=10){
+                std::string id_string=path.substr(10);
+                try{
+                    int id=std::stoi(id_string);
+                    const Song*song=library.getSong(id);
+                    if (song){
+                        std::string data;
+                        if (FileReader::read(song->getmp3_file(),data,true)){
+                            HttpResponse resp(200,"audio/mpeg");
+                            resp.SetBody(data);
+                            return resp;
+                        }
+                    }
+                }
+                catch(const std::exception &e){
+                    return HttpResponse::notfound();
+                }
+            }
+            if (path.rfind("/play/",0)==0&&path.length()>=7){
+                std::string id_string=path.substr(6);
+                try{
+                    int id=std::stoi(id_string);
+                    const Song*song=library.getSong(id);
+                    if (song){
+                        std::string data;
+                        if (FileReader::read(song->getmp3_file(),data,true)){
+                            HttpResponse resp(200,"audio/mpeg");
+                            resp.SetBody(data);
+                            return resp;
+                        }
+                    }
+                }
+                catch(const std::exception &e){
+                    return HttpResponse::notfound();
+                }
+            }
+            if (path.rfind("/lyrics/",0)==0&&path.length()>=9){
+                std::string id_string=path.substr(8);
+                try{
+                    int id=std::stoi(id_string);
+                    const Song*song=library.getSong(id);
+                    if (song && !song->getlyrics_file().empty()){
+                        std::string data;
+                        if (FileReader::read(song->getlyrics_file(),data)){
+                            HttpResponse resp(200,"text/plain");
+                            resp.SetBody(data);
+                            return resp;
+                        }
+                    }
+                }
+                catch(const std::exception &e){
+                    return HttpResponse::notfound();
+                }
+            }
             if (path=="/"||path=="/index.html"){
                 std::string html;
                 if (FileReader::read("index.html",html)){
@@ -156,28 +221,7 @@ class Router{
                     return resp;
                 }
             }
-            if (path.rfind("/play/",0)==0&&path.length()>=7){
-                int id=path[6]-'0';
-                if (id>=1&&id<=3){
-                    std::string data;
-                    if (FileReader::read(songs[id-1].getmp3_file(),data,true)){
-                        HttpResponse resp(200,"audio/mpeg");
-                        resp.SetBody(data);
-                        return resp;
-                    }
-                }
-            }
-            if (path.rfind("/lyrics/",0)==0&&path.length()>=9){
-                int id=path[8]-'0';
-                if (id>=1&&id<=3){
-                std::string data;
-                if (FileReader::read(songs[id-1].getlyrics_file(),data)){
-                    HttpResponse resp(200,"text/plain");
-                    resp.SetBody(data);
-                    return resp;
-                }
-            }
-            }
+
             return HttpResponse::notfound();
         }
 };
@@ -186,14 +230,20 @@ class TcpServer{
         int port;
         int server_socket;
         Router router;
+        SongLibrary library;
     public :
-        TcpServer(int port ): port(port),server_socket(-1){}
+        TcpServer(int port ): port(port),server_socket(-1),router(library){}
         ~TcpServer(){
             if (server_socket>=0){
                 close(server_socket);
             }
         }
         bool start(){
+            library.scanDirectory(".");
+            if (library.count()<=0){
+                std::cout << "no MP3 found \n";
+                return false;
+            }
             server_socket=socket(AF_INET,SOCK_STREAM,0);
             if (server_socket<0){
                 perror("socket");
