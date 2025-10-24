@@ -24,7 +24,7 @@ public:
     void display() const {
         std::cout << " " << id << " " << name;
         if (hasLyrics()){
-            std::cout << "Lyrics available ";
+            std::cout << " Lyrics available ";
         }
         std::cout << "\n";
     }
@@ -71,7 +71,7 @@ public:
     size_t count () const {
         return songs.size();
     }
-    void displayAll() const {
+    void displayAll() const  {
         for (const auto &song:songs){
             song.display();
         }
@@ -89,9 +89,71 @@ class FileReader{
             return true;
         }
 };
-class CliPlayer{};
+class CliPlayer{
+private:
+    SongLibrary library;
+    void clearScreen(){
+        #ifdef _WIN32
+            system("cls");
+        #else 
+            system("clear");
+        #endif
+    }
+    void displayHeader(){
+        std::cout << "Kakarotshyper's player: \n\n ";
+    }
+    void displaySongs(){
+        std::cout << "Available Songs:\n";
+        library.displayAll();
+        std::cout <<"\n";
+    }
+    void displayCommands(){
+        std::cout << "Commands :\n";
+        std::cout << "<id> -Play song by entering the id \n";
+        std::cout << "[space] -Pause/Resume\n";
+        std::cout << "q -Stop the current song\n";
+        std::cout << "l -List all songs \n";
+        std::cout << ":wq - to exit the player\n";
+        std::cout << "\n";
+    }
+        // more functions to write here now after music player is written that is core thing
+        // 2 important functions that are play command and handle inputs that will be done here in private only;
+public:
+    bool initialize(){
+        clearScreen();
+        std::cout << "scanning for mp3 files : \n\n\n";
+        library.scanDirectory(".");
+        if (library.count()==0){
+            std::cout << "\n no mp3 found in current directory .\n";
+            std::cout << "please add some .mp3 to get this thing running \n";
+            return false;
+        }
+        std::cout << "Library loaded successfully \n";
+        //std::this_thread::sleep_for(std::chrono::seconds(1));
+        return true;
+    }
+    void run(){
+        while(true){
+            clearScreen();
+            displayHeader();
+           // displayStatus();
+            displaySongs();
+            displayCommands();
+            std::cout << "-> ";
+            std::string input;
+            std::getline(std::cin,input);
+           // processCommand(input);
+        }
+    }
+};
 int main (){
-//    CliPlayer player;
-  //  player.run();
+    CliPlayer player;
+    if (!player.initialize()){
+        return 1;
+    }
+    player.run();
+   // SongLibrary library;
+   // library.scanDirectory(".");
+  //  library.displayAll();
     return 0;
 }
