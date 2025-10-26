@@ -15,10 +15,11 @@ private:
     std::string lyrics_file;
     std::string name;
 public:
-    Song(int id,const std::string &name,const std::string &mp3,const std::string &lyrics=" ")
+    Song(int id,const std::string &name,const std::string &mp3,const std::string &lyrics="")
         :id(id),name(name),mp3_file(mp3),lyrics_file(lyrics){}
     int getId() const{return id;}
     std::string getName()const {return name;}
+    std::string getmp3_file() const {return mp3_file;}
     std::string getlyrics_file() const {return lyrics_file;}
     bool hasLyrics() const {return !lyrics_file.empty();}
     void display() const {
@@ -116,8 +117,43 @@ private:
         std::cout << ":wq - to exit the player\n";
         std::cout << "\n";
     }
-        // more functions to write here now after music player is written that is core thing
-        // 2 important functions that are play command and handle inputs that will be done here in private only;
+    void PlayCommand(int id){
+        const Song*song=library.getSong(id);
+        if (!song){
+            std::cout << "no song with that id boss " << "\n\n";
+            return ;
+        }
+        std::cout << "\n Now playing --> " << song->getName() << "\n\n";
+        if (song->hasLyrics()){
+            std::string lyrics;
+            if (FileReader::read(song->getlyrics_file(),lyrics)){
+                std::cout << "         LYRICS:                         \n";
+                std::cout << lyrics<<"\n\n";
+            }
+        }
+        else {
+            std::cout << "No lyrics were available\n\n";
+        }
+        // Media playback will comehere
+    }
+    void processCommands(const std::string &input){
+        if (input.empty())return ;
+        if (input==":wq"){
+            std::cout << "Peace Love Empathy ,bye,bye";
+            exit(0);
+        }
+        if (input==" "){
+            std::cout << "paused music \n\n";
+            // this could only be completed after audio implementation , add a flag for pause and play 
+        }
+        try{
+            int id=std::stoi(input);
+                PlayCommand(id);
+            }
+            catch (const std::exception&e){
+                std::cout << "invalid command : " << input << "\n";
+            }
+        } 
 public:
     bool initialize(){
         clearScreen();
@@ -126,10 +162,10 @@ public:
         if (library.count()==0){
             std::cout << "\n no mp3 found in current directory .\n";
             std::cout << "please add some .mp3 to get this thing running \n";
+            std::cout << "current path is " << fs::current_path()<<"\n\n";
             return false;
         }
         std::cout << "Library loaded successfully \n";
-        //std::this_thread::sleep_for(std::chrono::seconds(1));
         return true;
     }
     void run(){
@@ -142,7 +178,7 @@ public:
             std::cout << "-> ";
             std::string input;
             std::getline(std::cin,input);
-           // processCommand(input);
+            processCommands(input);
         }
     }
 };
