@@ -9,6 +9,9 @@
 #include <sstream>
 #include <filesystem>
 #include <algorithm>
+#include <csignal>
+#include <chrono>
+#include <iomanip>
 namespace fs=std::filesystem;
 
 class Song{
@@ -278,6 +281,7 @@ class TcpServer{
         }
     private:
         void handleClient(int client_sock){
+            auto start_time=std::chrono::steady_clock::now();
             char buffer[4096];
             ssize_t n=recv(client_sock,buffer,sizeof(buffer)-1,0);
             if (n<=0){
@@ -285,7 +289,7 @@ class TcpServer{
                 return ;
             }
             buffer[n]='\0';
-
+            try{
             std::string request(buffer);
             std::string path="/";
             size_t pos=request.find(" ");
@@ -295,7 +299,7 @@ class TcpServer{
                     path=request.substr(pos+1,pos2-pos-1);    
                 }
             }
-            std::cout << "Request  " << path << "\n";
+            std::cout << "Request  " << path  ;//"\n";
 
             HttpResponse response = router.route(path);
             std::string response_data=response.build();
@@ -306,10 +310,19 @@ class TcpServer{
                 if (sent<=0)break;
                 total+=sent;
             }
+            }
+            catch(const std::exception&e){
+                std::cerr << "[error] exceptions in handleClient : " << e.what() << "\n";
+            }
             close(client_sock);
+            auto end_time=std::chrono::steady_clock::now();
+            auto duration = end_time-start_time;
+            auto ms=std::chrono::duration<double,std::milli>(duration).count();
+            std::cout << ":: " << std::fixed << std::setprecision(2) << ms<< " ms\n";
         }
 };
 int main (){
+    signal(SIGPIPE,SIG_IGN);
     TcpServer server(28333);
     if (!server.start()){
         return 1;
