@@ -12,6 +12,8 @@
 #include <csignal>
 #include <chrono>
 #include <iomanip>
+#include <thread>
+#include <mutex>
 namespace fs=std::filesystem;
 
 class Song{
@@ -234,6 +236,7 @@ class TcpServer{
         int server_socket;
         Router router;
         SongLibrary library;
+        std::mutex cout_mutex;
     public :
         TcpServer(int port ): port(port),server_socket(-1),router(library){}
         ~TcpServer(){
@@ -276,6 +279,7 @@ class TcpServer{
                 socklen_t client_len=sizeof(client_addr);
                 int client_sock=accept(server_socket,(sockaddr*)&client_addr,&client_len);
                 if (client_sock<0)continue;
+                std::thread(&TcpServer::handleClient,this,client_sock).detach();
                 handleClient(client_sock);
             }
         }
@@ -299,6 +303,10 @@ class TcpServer{
                     path=request.substr(pos+1,pos2-pos-1);    
                 }
             }
+            {
+                std::lock_guard<std::mutex>lock(cout_mutex);
+                std::cout << "[Thread " << std:: this_thread::get_id()<< "] Request :" << path;
+            }
             std::cout << "Request  " << path  ;//"\n";
 
             HttpResponse response = router.route(path);
@@ -318,7 +326,10 @@ class TcpServer{
             auto end_time=std::chrono::steady_clock::now();
             auto duration = end_time-start_time;
             auto ms=std::chrono::duration<double,std::milli>(duration).count();
+            {
+                std::lock_guard<std::mutex>lock(cout_mutex);
             std::cout << ":: " << std::fixed << std::setprecision(2) << ms<< " ms\n";
+            }
         }
 };
 int main (){
@@ -330,4 +341,3 @@ int main (){
     server.run();
     return 0;
 }
-
