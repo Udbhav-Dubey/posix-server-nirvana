@@ -125,6 +125,7 @@ class HttpResponse{
         int status_code;
         std::string content_type;
         std::string body_;
+        std::string content_disposition;
     public:
         HttpResponse(int status=200,const std::string&content_type="text/plain")
             :status_code(status),content_type(content_type){}
@@ -135,19 +136,25 @@ class HttpResponse{
             response << "HTTP/1.1 " << status_code << " " << status_text << "\r\n";
             response << "Content-Type: "<<content_type<<"\r\n";
             response << "Content-Length: "<<body_.size()<<"\r\n";
+            if (!content_disposition.empty()){
+                response<<"Content-Disposition: "<<content_disposition<<"\r\n";
+            }
             response << "Connection : close\r\n\r\n";
             response << body_;
             return response.str();
         }
         static HttpResponse notfound(){
             HttpResponse resp(404,"text/html");
-            resp.SetBody("<html><body><h1> NOt found </h1></body></html>");
+            resp.SetBody("<html><body><h1> Peace Love Empathy ,bye,bye\nNOt found </h1></body></html>");
             return resp;
         }
         static HttpResponse json(const std::string &data){
             HttpResponse resp(200,"application/json");
             resp.SetBody(data);
             return resp;
+        }
+        void SetContentDisposition(const std::string &filename){
+            content_disposition="attachment; filename=\""+filename+"\"";
         }
 };
 class Router{
@@ -218,6 +225,25 @@ class Router{
                     return HttpResponse::notfound();
                 }
             }
+            if (path.rfind("/download/",0)==0&&path.length()>10){
+                std::string id_string=path.substr(10);
+                try{
+                    int id=std::stoi(id_string);
+                    const Song*song=library.getSong(id);
+                    if (song){
+                        std::string data;
+                        if (FileReader::read(song->getmp3_file(),data,true)){
+                            HttpResponse resp(200,"audio/mpeg");
+                            resp.SetContentDisposition(song->getmp3_file());
+                            resp.SetBody(data);
+                            return resp;
+                        }
+                    }
+                }
+                catch(const std::exception&e){
+                    return HttpResponse::notfound();
+                }
+            }
             if (path=="/"||path=="/index.html"){
                 std::string html;
                 if (FileReader::read("index.html",html)){
@@ -280,7 +306,7 @@ class TcpServer{
                 int client_sock=accept(server_socket,(sockaddr*)&client_addr,&client_len);
                 if (client_sock<0)continue;
                 std::thread(&TcpServer::handleClient,this,client_sock).detach();
-                handleClient(client_sock);
+               // handleClient(client_sock);
             }
         }
     private:
