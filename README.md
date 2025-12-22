@@ -1,23 +1,21 @@
-````md
 # posix-server-nirvana
 
 A minimal HTTP server written in C++ using POSIX sockets.
 
-This project began as a small exercise while reading *Beej’s Guide to Network Programming* and gradually evolved into a learning-focused server capable of serving local MP3 files, exposing a small JSON API, and handling multiple clients.
+This project began as a small exercise while reading *Beej's Guide to Network Programming* and gradually evolved into a learning-focused server capable of serving local MP3 files, exposing a small JSON API, and handling multiple clients.
 
 ---
 
 ## Origin & Motivation
 
 This project started as a simple goal:
-
 - create a TCP server  
 - accept connections  
 - respond to basic HTTP requests  
 
 While experimenting, I wanted the server to serve a few Nirvana tracks stored locally on my machine.  
-That requirement immediately pushed the project beyond a trivial example and introduced real problems such as:
 
+That requirement immediately pushed the project beyond a trivial example and introduced real problems such as:
 - routing requests to different endpoints  
 - serving binary data correctly  
 - organizing server-side logic  
@@ -76,7 +74,6 @@ This repository represents **version 1** of the server — a working baseline th
 ## What this project is *not*
 
 This project is intentionally **not**:
-
 - a production-ready HTTP server  
 - fully HTTP-compliant  
 - asynchronous or event-driven  
@@ -87,14 +84,12 @@ The goal is learning and understanding, not abstraction or performance tuning.
 ---
 
 ## Building & Running
-
 ```bash
 g++ -std=c++17 server.cpp -pthread
 ./a.out
 ```
 
 The server listens on:
-
 ```
 http://localhost:28333
 ```
@@ -106,6 +101,7 @@ http://localhost:28333
 The HTML file included in this repository was **not written by me** and was generated with the help of an LLM.
 
 It exists only as a minimal interface to interact with the server during testing.  
+
 The focus of this project is networking and systems programming, not frontend development.
 
 ---
@@ -113,7 +109,6 @@ The focus of this project is networking and systems programming, not frontend de
 ## Planned Improvements
 
 Future iterations of this project will focus on:
-
 - Proper HTTP request parsing  
 - Cleaner separation of concerns (headers and source files)  
 - Improved routing abstractions  
@@ -138,4 +133,3 @@ The name is a small homage to that origin.
 <p align="center">
   <img src="logo.png" width="120" alt="Nirvana logo (homage)">
 </p>
-````
