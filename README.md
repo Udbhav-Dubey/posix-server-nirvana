@@ -130,6 +130,5 @@ This project originally started as a personal experiment to serve a few Nirvana 
 The name is a small homage to that origin.
 </sub>
 
-<p align="center">
-  <img src="logo.png" width="120" alt="Nirvana logo (homage)">
-</p>
+
+![logo](logo.png)
