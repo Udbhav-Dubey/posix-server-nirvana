@@ -45,7 +45,7 @@ class SongLibrary{
     private:
         std::vector<Song>songs;
     public :
-        void scanDirectory(const std::string&directory="."){
+        void scanDirectory(const std::string&directory="/home/ud/Documents/posix-server-nirvana/data"){
             songs.clear();
             std::vector<std::string>mp3Files;
             try{
@@ -271,7 +271,7 @@ class TcpServer{
             }
         }
         bool start(){
-            library.scanDirectory(".");
+            library.scanDirectory("./data");
             if (library.count()<=0){
                 std::cout << "no MP3 found \n";
                 return false;
