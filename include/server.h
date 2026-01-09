@@ -1,5 +1,7 @@
 #pragma once
 #include <mutex>
+#include "Songs.h"
+#include "Router.h"
 class Router;
 class SongLibrary;
 class TcpServer{
@@ -9,8 +11,10 @@ class TcpServer{
         SongLibrary library;
         Router router;
         std::mutex cout_mutex;
-        void handleSock(int client_sock);
+        void handleClient(int client_sock);
     public:
+        TcpServer(int port );
         bool start();
         void run();
+        ~TcpServer();
 };

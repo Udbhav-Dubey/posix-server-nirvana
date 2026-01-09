@@ -7,8 +7,9 @@ class HttpResponse{
         std::string body_;
         std::string content_disposition;
     public:
+    HttpResponse(int status,const std::string&content_type);
     void SetBody(const std::string &body);
-    const std::string build() ;
+    std::string build() const ;
     static HttpResponse json(const std::string &data);
     static HttpResponse notfound();
     void setContentDisposition(const std::string&filename);

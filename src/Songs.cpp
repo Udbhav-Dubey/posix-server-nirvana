@@ -7,22 +7,22 @@
 #include <string>
 #include <filesystem>
 #include <algorithm>
-namespace fs=filesystem;
+namespace fs=std::filesystem;
 Song::Song(int id,const std::string&name,const std::string &mp3,const std::string &lyrics="")
     :id(id),name(name),mp3_file(mp3),lyrics_file{lyrics}{}
-Song::getid()const {
+int Song::getId() const {
     return id;
 }
-std::string getName()const{
+std::string Song::getName() const {
     return name;
 }
-std::string getmp3File()const {
+std::string Song::getmp3_file() const {
     return mp3_file;
 }
-std::string getlyrics_file()const{
+std::string Song::getlyrics_file() const {
     return lyrics_file;
 }
-std::string toJson()const{
+std::string Song::tojson() const{
     std::ostringstream ss;
         ss<<"   {\n";
         ss<<"    \"id\": "<<id<<",\n";
@@ -38,13 +38,13 @@ void SongLibrary::scanDirectory(const std::string&directory="data"){
     try{
         for (const auto &entry:fs::directory_iterator(directory)){
             if (entry.is_regular_file()){
-                std::string filename=entry.path().filename.string();
-                if (filename.length>3&&filename.substr(filename.length()-4)==".mp3"){
+                std::string filename=entry.path().filename().string();
+                if (filename.length()>3&&filename.substr(filename.length()-4)==".mp3"){
                     mp3Files.push_back(filename);
                 }
             }
         }
-        std::sort(mp3Files.begin(),mp3File.end());
+        std::sort(mp3Files.begin(),mp3Files.end());
         for (size_t i=0;i<mp3Files.size();i++){
             std::string base=mp3Files[i].substr(0,mp3Files[i].length()-4);
             std::string lyricsfile=base+"txt";
@@ -55,8 +55,8 @@ void SongLibrary::scanDirectory(const std::string&directory="data"){
         }
         std::cout << "discovered " << songs.size() << " songs\n";
         for (const auto &s:songs){
-            std::cout << " ["<<s.getid()<<"] "<<song.getName();
-            if (!song.getlyrics_file().empty()){
+            std::cout << " ["<<s.getId()<<"] "<<s.getName();
+            if (!s.getlyrics_file().empty()){
                 std::cout << "lyrics found ";
             }
             std::cout << "\n";
@@ -68,12 +68,13 @@ void SongLibrary::scanDirectory(const std::string&directory="data"){
 }
 const Song* SongLibrary::getSong(int id)const {
     for (const auto &s:songs){
-        if (song.getId()==id){
-            return &song;
+        if (s.getId()==id){
+            return &s;
         }
     }
+    return NULL;
 }
-size_t SongLibrary::count const (){
+size_t SongLibrary::count() const{
     return songs.size();
 }
 std::string SongLibrary::ToJson() const{
