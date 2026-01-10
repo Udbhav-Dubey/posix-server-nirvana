@@ -42,7 +42,7 @@ bool TcpServer::start(){
         return 0;
     }
     std::cout << "server listining on port : " << port << "\n";
-    std::cout << "http://localhost:"<<port<<"\n\n";
+    std::cout <<"localhost ---> " <<"http://localhost:"<<port<<"\n\n";
     socklen_t namelen=sizeof(name);
     char buffer[INET_ADDRSTRLEN];
     int sock=socket(AF_INET,SOCK_DGRAM,0);
@@ -53,7 +53,7 @@ bool TcpServer::start(){
     connect(sock,(struct sockaddr *)&serv,sizeof(serv));
     getsockname(sock,(struct sockaddr *)&name,&namelen);
     inet_ntop(AF_INET,&name.sin_addr,buffer,sizeof(buffer));
-    std::cout <<"http:://"<<buffer<<":"<<port<<"\n";
+    std::cout <<"ip+port ---> "<<"http://"<<buffer<<":"<<port<<"\n";
     close(sock);
     return true;
 }
@@ -91,7 +91,7 @@ void TcpServer::handleClient(int client_sock){
             std::lock_guard<std::mutex>lock(cout_mutex);
             std::cout << "[Thread " << std::this_thread::get_id()<<"] Request : " <<path;
         }
-        std::cout << "Request   " << path  ;
+        std::cout << "    Request   " << path  ;
         HttpResponse response=router.route(path);
         std::string response_data=response.build();
         size_t total=0;

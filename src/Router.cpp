@@ -3,14 +3,11 @@
 #include "Songs.h"
 #include "utils.h"
 #include <iostream>
-
 Router::Router(SongLibrary &lib):library(lib){};
-
 HttpResponse Router::route(const std::string &path){
     if (path=="/api/songs"){
         return HttpResponse::json(library.ToJson());
     }
-    
     if (path.rfind("/api/play/",0)==0&&path.length()>10){
         std::string id_string=path.substr(10);
         try{
@@ -29,7 +26,6 @@ HttpResponse Router::route(const std::string &path){
             return HttpResponse::notfound();
         }
     }
-    
     if (path.rfind("/play/",0)==0&&path.length()>6){
         std::string id_string=path.substr(6);
         try{
@@ -48,7 +44,6 @@ HttpResponse Router::route(const std::string &path){
             return HttpResponse::notfound();
         }
     }
-    
     if (path.rfind("/lyrics/",0)==0&&path.length()>8){
         std::string id_string=path.substr(8);
         try{
@@ -67,7 +62,6 @@ HttpResponse Router::route(const std::string &path){
             return HttpResponse::notfound();
         }
     }
-    
     if (path.rfind("/download/",0)==0&&path.length()>10){
         std::string id_string=path.substr(10);
         try{
@@ -87,7 +81,6 @@ HttpResponse Router::route(const std::string &path){
             return HttpResponse::notfound();
         }
     }
-    
     if (path=="/"||path=="/index.html"){
         std::string html;
         std::vector<std::string> paths = {"../index.html", "index.html", "./index.html"};
@@ -103,6 +96,5 @@ HttpResponse Router::route(const std::string &path){
         
         std::cerr << "[ERROR] Could not find index.html in any of the attempted paths\n";
     }
-    
     return HttpResponse::notfound();
 }
