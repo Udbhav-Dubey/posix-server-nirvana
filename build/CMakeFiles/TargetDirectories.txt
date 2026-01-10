@@ -1,0 +1,3 @@
+/home/kakarot/Documents/posix-server-nirvana/build/CMakeFiles/nirvana.dir
+/home/kakarot/Documents/posix-server-nirvana/build/CMakeFiles/edit_cache.dir
+/home/kakarot/Documents/posix-server-nirvana/build/CMakeFiles/rebuild_cache.dir

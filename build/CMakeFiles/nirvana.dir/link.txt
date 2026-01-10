@@ -1,0 +1,1 @@
+/usr/bin/c++ -Wl,--dependency-file=CMakeFiles/nirvana.dir/link.d CMakeFiles/nirvana.dir/src/main.cpp.o CMakeFiles/nirvana.dir/src/server.cpp.o CMakeFiles/nirvana.dir/src/Router.cpp.o CMakeFiles/nirvana.dir/src/HttpResponse.cpp.o CMakeFiles/nirvana.dir/src/Songs.cpp.o CMakeFiles/nirvana.dir/src/utils.cpp.o -o nirvana
