@@ -47,11 +47,11 @@ void SongLibrary::scanDirectory(const std::string&directory="data"){
         std::sort(mp3Files.begin(),mp3Files.end());
         for (size_t i=0;i<mp3Files.size();i++){
             std::string base=mp3Files[i].substr(0,mp3Files[i].length()-4);
-            std::string lyricsfile=base+"txt";
+            std::string lyricsfile=directory+"/"+base+".txt";
             if (!fs::exists(lyricsfile)){
                 lyricsfile="";
             }
-            songs.emplace_back(i,base,mp3Files[i],lyricsfile);
+            songs.emplace_back(i,base,directory+"/"+mp3Files[i],lyricsfile);
         }
         std::cout << "discovered " << songs.size() << " songs\n";
         for (const auto &s:songs){
