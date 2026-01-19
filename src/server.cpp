@@ -16,7 +16,7 @@
 struct client{
     int id;
     std::string write_buf{};
-    std::string read_buf{};
+    //std::string read_buf{};
 };
 void remove_client(int fd,std::unordered_map<int,client>&mp,std::vector<pollfd>&poll_fds){
     auto it=mp.find(fd);
@@ -145,6 +145,11 @@ void TcpServer::run(){
                 buffer[n]='\0';
                 try{
                     std::string request(buffer);
+                    if (request.find("HTTP/")==std::string::npos){
+                        remove_client(pfd.fd,mp,poll_fds);
+                        i--;
+                        continue;
+                    }
                     std::string path="/";
                     size_t pos=request.find(" ");
                     if (pos!=std::string::npos){
@@ -169,15 +174,24 @@ void TcpServer::run(){
             if ((pfd.fd!=server_socket)&&(pfd.revents&POLLOUT)){
                 if (!mp[pfd.fd].write_buf.empty()){
                     int sendy=send(pfd.fd,mp[pfd.fd].write_buf.data(),mp[pfd.fd].write_buf.size(),0);
-                    if (sendy<=0){continue;}
+                    if (sendy<=0){
+                    if (errno==EAGAIN||errno==EWOULDBLOCK){
+                        continue;
+                    }
+                        perror("send");
+                        remove_client(pfd.fd,mp,poll_fds);
+                        i--;
+                        continue;
+                    }
                     
                     mp[pfd.fd].write_buf.erase(0,sendy);
                     if (mp[pfd.fd].write_buf.empty()){
                         pfd.events&=~POLLOUT;
+                        remove_client(pfd.fd,mp,poll_fds);
+                        i--;
                     }
                 }
             }
-            
         }
     }
     for (auto &pair:mp){
