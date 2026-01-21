@@ -164,7 +164,7 @@ void TcpServer::run(){
                   //  mp[pfd.fd].read_buf.append(response_data,n);
                    // mp[pfd.fd].write_buf+=mp[pfd.fd].read_buf;
                     //mp[pfd.fd].read_buf.clear();
-                    mp[pfd.fd].write_buf=response_data;
+                    mp[pfd.fd].write_buf+=response_data;
                     pfd.events|=POLLOUT;
                 }
                 catch(const std::exception&e){
