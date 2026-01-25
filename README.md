@@ -1,6 +1,6 @@
 # posix-server-nirvana
 
-A minimal HTTP server written in C++ using POSIX sockets.
+A minimal event driven HTTP server written in C++ using POSIX sockets.
 
 This project began as a small exercise while reading *Beej's Guide to Network Programming* and gradually evolved into a learning-focused server capable of serving local MP3 files, exposing a small JSON API, and handling multiple clients.
 
@@ -23,7 +23,7 @@ That requirement immediately pushed the project beyond a trivial example and int
 
 Hitting those walls is what drove the project forward.
 
-This repository represents **version 1** of the server — a working baseline that will be improved and refactored in future iterations.
+This repository represents **version 1.5** of the server — a working baseline that will be improved and refactored in future iterations.
 
 ---
 
@@ -35,15 +35,14 @@ This repository represents **version 1** of the server — a working baseline th
 - Streams MP3 files over HTTP  
 - Exposes a JSON API listing available songs  
 - Serves lyrics files when present  
-- Handles multiple clients using a thread-per-connection model  
-- Measures per-request handling time  
+- Handles multiple clients with help of poll system call
 
 ---
 
 ## Implemented Components
 
 ### Networking
-- Manual socket setup using `socket`, `bind`, `listen`, `accept`
+- Manual socket setup using `socket`, `bind`, `listen`, `accept`,`poll`
 - `SO_REUSEADDR` for reliable restarts
 - Explicit handling of `SIGPIPE`
 
@@ -65,9 +64,9 @@ This repository represents **version 1** of the server — a working baseline th
 - Binary MP3 streaming
 - Optional lyrics file support
 
-### Concurrency
-- Thread-per-client model using `std::thread`
-- Basic synchronization for logging output
+### Event-Driven Nature
+- I have shifted the server from thread per client model to event driven server using poll
+- Now it reacts when there is some event and client_sock is made non_blocking so multiple clients can connect 
 
 ---
 
@@ -85,8 +84,10 @@ The goal is learning and understanding, not abstraction or performance tuning.
 
 ## Building & Running
 ```bash
-g++ -std=c++17 server.cpp -pthread
-./a.out
+# execute this in directory parent Directory of project
+cmake -S . -B build 
+cmake --build build
+./build/nirvana # to start it 
 ```
 
 The server listens on:
@@ -104,16 +105,19 @@ It exists only as a minimal interface to interact with the server during testing
 
 The focus of this project is networking and systems programming, not frontend development.
 
+if anybody wants to upgrade the html they can so just make sure java script code in html works same  
+
 ---
 
 ## Planned Improvements
 
 Future iterations of this project will focus on:
 - Proper HTTP request parsing  
-- Cleaner separation of concerns (headers and source files)  
 - Improved routing abstractions  
 - More robust error handling  
 - Better protocol correctness  
+- thread pool for songs 
+- buffer managment
 
 This repository serves as the baseline before those changes.
 
