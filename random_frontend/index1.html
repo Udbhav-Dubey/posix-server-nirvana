@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROOT@SYSTEM:~/MUSIC_PLAYER</title>
+    <style>
+        :root {
+            --neon-green: #00ff41;
+            --dark-bg: #0a0a0a;
+            --term-grey: #1a1a1a;
+            --scanline: rgba(18, 16, 16, 0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: var(--dark-bg);
+            color: var(--neon-green);
+            font-family: 'Courier New', Courier, monospace;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            /* Scanline Effect */
+            background: linear-gradient(var(--scanline) 50%, rgba(0, 0, 0, 0.1) 50%),
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.05));
+            background-size: 100% 4px, 3px 100%;
+        }
+
+        /* CRT Flicker */
+        @keyframes flicker {
+            0% { opacity: 0.97; }
+            5% { opacity: 0.95; }
+            10% { opacity: 0.9; }
+            100% { opacity: 1; }
+        }
+
+        .terminal-window {
+            width: 90%;
+            max-width: 800px;
+            height: 80vh;
+            background: var(--term-grey);
+            border: 2px solid var(--neon-green);
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.2);
+            display: flex;
+            flex-direction: column;
+            animation: flicker 0.15s infinite;
+        }
+
+        .title-bar {
+            background: var(--neon-green);
+            color: black;
+            padding: 5px 15px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .content {
+            padding: 20px;
+            flex-grow: 1;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--neon-green) var(--term-grey);
+        }
+
+        .header-info {
+            border-bottom: 1px dashed var(--neon-green);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+        }
+
+        audio {
+            width: 100%;
+            filter: invert(1) hue-rotate(90deg) brightness(1.5);
+            margin: 15px 0;
+            height: 30px;
+        }
+
+        .song-list { display: flex; flex-direction: column; gap: 5px; }
+
+        .song-item {
+            display: grid;
+            grid-template-columns: 1fr 50px 50px;
+            gap: 10px;
+            padding: 8px;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .song-item:hover {
+            background: rgba(0, 255, 65, 0.1);
+            border-color: var(--neon-green);
+            cursor: pointer;
+        }
+
+        .song-button {
+            background: none;
+            border: none;
+            color: inherit;
+            font-family: inherit;
+            text-align: left;
+            cursor: pointer;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .lyrics-button, .download-button {
+            background: none;
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .lyrics-button:hover, .download-button:hover {
+            background: var(--neon-green);
+            color: black;
+        }
+
+        .playing {
+            background: var(--neon-green) !important;
+            color: black !important;
+        }
+
+        .lyrics-display {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid var(--neon-green);
+            background: rgba(0, 0, 0, 0.5);
+            white-space: pre-wrap;
+            display: none;
+        }
+
+        .lyrics-display.show { display: block; }
+
+        .status-line {
+            padding: 10px;
+            border-top: 2px solid var(--neon-green);
+            font-size: 14px;
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 10px;
+            height: 18px;
+            background: var(--neon-green);
+            animation: blink 1s infinite;
+            vertical-align: middle;
+        }
+
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* Custom Scrollbar for Chrome/Safari */
+        .content::-webkit-scrollbar { width: 8px; }
+        .content::-webkit-scrollbar-track { background: var(--term-grey); }
+        .content::-webkit-scrollbar-thumb { background: var(--neon-green); }
+    </style>
+</head>
+<body>
+
+<div class="terminal-window">
+    <div class="title-bar">
+        <span>[NIRVANA-SYSTEM v2.0.4]</span>
+        <span>X _ []</span>
+    </div>
+    
+    <div class="content">
+        <div class="header-info">
+            <p>> initializing_audio_driver... <span style="color: #fff;">[OK]</span></p>
+            <p>> fetch_library --target="/home/music"</p>
+        </div>
+
+        <audio id="audioPlayer" controls></audio>
+
+        <div class="song-list" id="songList">
+            <div class="loading">> SCANNING_FOR_MEDIA...</div>
+        </div>
+
+        <div class="lyrics-display" id="lyricsDisplay"></div>
+    </div>
+
+    <div class="status-line" id="statusText">
+        READY. <span class="cursor"></span>
+    </div>
+</div>
+
+<script>
+    const player = document.getElementById('audioPlayer');
+    const statusText = document.getElementById('statusText');
+    const lyricsDisplay = document.getElementById('lyricsDisplay');
+    const songList = document.getElementById('songList');
+    let songs = [];
+    let currentSongIndex = -1;
+
+    async function loadSongs() {
+        try {
+            const response = await fetch('/api/songs');
+            if (!response.ok) throw new Error('ERR_CONN_FAILED');
+            const data = await response.json();
+            songs = data.songs;
+            
+            songList.innerHTML = '';
+            songs.forEach((song, idx) => {
+                const row = document.createElement('div');
+                row.className = 'song-item';
+                row.setAttribute('data-song-id', song.id);
+                
+                row.innerHTML = `
+                    <button class="song-button" onclick="playSong(${song.id}, this, '${song.name}')">
+                        [${String(idx + 1).padStart(2, '0')}] ${song.name}
+                    </button>
+                    <button class="lyrics-button" onclick="showLyrics(${song.id})">LRC</button>
+                    <button class="download-button" onclick="downloadSong(${song.id}, '${song.mp3}')">GET</button>
+                `;
+                songList.appendChild(row);
+            });
+            statusText.innerHTML = `TOTAL_TRACKS: ${data.count} | SYSTEM_STABLE <span class="cursor"></span>`;
+        } catch (error) {
+            songList.innerHTML = '<div style="color: red;">> FATAL_ERROR: FAILED_TO_MOUNT_LIBRARY</div>';
+        }
+    }
+
+    function playSong(songId, buttonElement, songName) {
+        document.querySelectorAll('.song-item').forEach(el => el.classList.remove('playing'));
+        const parentRow = buttonElement.closest('.song-item');
+        parentRow.classList.add('playing');
+        
+        currentSongIndex = songId;
+        player.src = '/api/play/' + songId;
+        player.play();
+        
+        statusText.innerHTML = `> NOW_PLAYING: "${songName}" <span class="cursor"></span>`;
+        lyricsDisplay.classList.remove('show');
+    }
+
+    function showLyrics(songId) {
+        fetch('/lyrics/' + songId)
+            .then(res => res.text())
+            .then(text => {
+                lyricsDisplay.textContent = `--- START_OF_STREAM ---\n\n${text}\n\n--- END_OF_STREAM ---`;
+                lyricsDisplay.classList.add('show');
+                lyricsDisplay.scrollIntoView({ behavior: 'smooth' });
+            });
+    }
+
+    function downloadSong(songId, filename) {
+        window.location.href = '/download/' + songId;
+        statusText.innerHTML = `> TRANSFER_INITIATED: ${filename} <span class="cursor"></span>`;
+    }
+
+    player.addEventListener('ended', () => {
+        let next = currentSongIndex + 1;
+        if (next < songs.length) {
+            const nextRow = document.querySelector(`[data-song-id="${next}"]`);
+            const nextBtn = nextRow.querySelector('.song-button');
+            playSong(next, nextBtn, songs[next].name);
+        }
+    });
+
+    loadSongs();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MISSION AUDIO</title>
+
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+    background:#000;
+    color:#fff;
+    font-family: Arial, Helvetica, sans-serif;
+    overflow:hidden;
+}
+
+/* ── LAYOUT ── */
+.container {
+    display:flex;
+    height:100vh;
+}
+
+/* LEFT: TRACKS */
+.left {
+    width:40%;
+    border-right:1px solid rgba(255,255,255,0.1);
+    overflow-y:auto;
+}
+
+.track {
+    padding:24px;
+    border-bottom:1px solid rgba(255,255,255,0.05);
+    cursor:pointer;
+    transition:0.2s;
+}
+
+.track:hover {
+    background:rgba(255,255,255,0.05);
+}
+
+.track.active {
+    background:#fff;
+    color:#000;
+}
+
+.track-title {
+    font-size:18px;
+    font-weight:600;
+}
+
+/* RIGHT: PLAYER */
+.right {
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    padding:80px;
+}
+
+.now {
+    font-size:12px;
+    letter-spacing:3px;
+    opacity:0.5;
+    margin-bottom:10px;
+}
+
+.title {
+    font-size:64px;
+    font-weight:800;
+    line-height:1.1;
+    margin-bottom:40px;
+}
+
+/* PROGRESS */
+.progress {
+    width:100%;
+    height:2px;
+    background:rgba(255,255,255,0.2);
+    position:relative;
+    cursor:pointer;
+}
+
+.bar {
+    height:100%;
+    width:0%;
+    background:#fff;
+}
+
+/* TIME */
+.time {
+    display:flex;
+    justify-content:space-between;
+    margin-top:10px;
+    font-size:12px;
+    opacity:0.6;
+}
+
+/* CONTROLS */
+.controls {
+    margin-top:40px;
+    display:flex;
+    gap:20px;
+}
+
+.btn {
+    border:1px solid #fff;
+    padding:12px 20px;
+    cursor:pointer;
+    transition:0.2s;
+}
+
+.btn:hover {
+    background:#fff;
+    color:#000;
+}
+
+/* STATUS */
+.status {
+    position:absolute;
+    bottom:20px;
+    left:20px;
+    font-size:12px;
+    opacity:0.4;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    
+    <div class="left" id="tracklist"></div>
+
+    <div class="right">
+        <div class="now">NOW PLAYING</div>
+        <div class="title" id="title">—</div>
+
+        <div class="progress" id="progress">
+            <div class="bar" id="bar"></div>
+        </div>
+
+        <div class="time">
+            <span id="cur">0:00</span>
+            <span id="dur">0:00</span>
+        </div>
+
+        <div class="controls">
+            <div class="btn" onclick="prev()">PREV</div>
+            <div class="btn" onclick="toggle()">PLAY</div>
+            <div class="btn" onclick="next()">NEXT</div>
+        </div>
+    </div>
+
+</div>
+
+<div class="status" id="status">INITIALIZING...</div>
+
+<audio id="audio"></audio>
+
+<script>
+const audio = document.getElementById('audio');
+const tracklist = document.getElementById('tracklist');
+const title = document.getElementById('title');
+const bar = document.getElementById('bar');
+const cur = document.getElementById('cur');
+const dur = document.getElementById('dur');
+const status = document.getElementById('status');
+
+let songs = [];
+let current = -1;
+
+/* LOAD */
+async function init() {
+    const res = await fetch('/api/songs');
+    const data = await res.json();
+    songs = data.songs;
+
+    tracklist.innerHTML = songs.map((s,i)=>`
+        <div class="track" onclick="play(${i})" id="t${i}">
+            <div class="track-title">${s.name}</div>
+        </div>
+    `).join('');
+
+    status.textContent = `LOADED ${songs.length} TRACKS`;
+}
+
+/* PLAY */
+function play(i) {
+    current = i;
+    audio.src = '/api/play/' + i;
+    audio.play();
+
+    document.querySelectorAll('.track').forEach(t=>t.classList.remove('active'));
+    document.getElementById('t'+i).classList.add('active');
+
+    title.textContent = songs[i].name;
+    status.textContent = `PLAYING ${i+1}/${songs.length}`;
+}
+
+/* CONTROLS */
+function toggle() {
+    if(audio.paused) audio.play();
+    else audio.pause();
+}
+
+function next() {
+    if(current+1 < songs.length) play(current+1);
+}
+
+function prev() {
+    if(current-1 >= 0) play(current-1);
+}
+
+/* PROGRESS */
+audio.addEventListener('timeupdate', ()=>{
+    if(!audio.duration) return;
+    bar.style.width = (audio.currentTime/audio.duration*100)+'%';
+    cur.textContent = fmt(audio.currentTime);
+    dur.textContent = fmt(audio.duration);
+});
+
+/* SEEK */
+document.getElementById('progress').onclick = e=>{
+    const rect = e.target.getBoundingClientRect();
+    const pct = (e.clientX-rect.left)/rect.width;
+    audio.currentTime = pct * audio.duration;
+};
+
+/* AUTO NEXT */
+audio.onended = next;
+
+/* FORMAT */
+function fmt(s){
+    let m=Math.floor(s/60);
+    let sec=Math.floor(s%60);
+    return m+':'+String(sec).padStart(2,'0');
+}
+
+/* KEYBOARD */
+document.addEventListener('keydown', e=>{
+    if(e.code==='Space'){ e.preventDefault(); toggle(); }
+    if(e.code==='ArrowRight') next();
+    if(e.code==='ArrowLeft') prev();
+});
+
+init();
+</script>
+
+</body>
+</html>

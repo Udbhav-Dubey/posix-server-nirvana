@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>NIRVANA_ENGINE_v3</title>
+    <style>
+        :root {
+            --bg: #050505;
+            --panel: #0f0f0f;
+            --accent: #ff3e00; /* High-alert Orange */
+            --text-dim: #666;
+            --text-bright: #e0e0e0;
+            --border: #222;
+            --font: 'Input Mono', 'Consolas', monospace;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: var(--bg); 
+            color: var(--text-bright); 
+            font-family: var(--font); 
+            font-size: 11px;
+            height: 100vh;
+            display: grid;
+            grid-template-columns: 250px 1fr 300px;
+            grid-template-rows: 40px 1fr 60px;
+        }
+
+        /* --- TOP BAR --- */
+        header {
+            grid-column: 1 / -1;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            justify-content: space-between;
+            background: var(--panel);
+        }
+
+        .status-pill {
+            background: #1a1a1a;
+            padding: 2px 8px;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            text-transform: uppercase;
+        }
+
+        /* --- LEFT: TRACK LIBRARY --- */
+        nav {
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+            background: var(--bg);
+        }
+
+        .track-item {
+            padding: 10px 15px;
+            border-bottom: 1px solid #111;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .track-item:hover { background: #151515; }
+        .track-item.active { 
+            background: rgba(255, 62, 0, 0.1); 
+            border-left: 2px solid var(--accent);
+        }
+
+        /* --- CENTER: VISUALIZER & SCOPE --- */
+        main {
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        .scope-container {
+            flex: 1;
+            border: 1px solid var(--border);
+            background: var(--panel);
+            position: relative;
+            overflow: hidden;
+        }
+
+        canvas { width: 100%; height: 100%; display: block; }
+
+        /* --- RIGHT: TELEMETRY & LYRICS --- */
+        aside {
+            border-left: 1px solid var(--border);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            background: var(--panel);
+        }
+
+        .stat-box {
+            border: 1px solid var(--border);
+            padding: 10px;
+        }
+
+        .stat-label { color: var(--text-dim); text-transform: uppercase; margin-bottom: 5px; }
+
+        .lyrics-area {
+            flex: 1;
+            overflow-y: auto;
+            color: #888;
+            line-height: 1.6;
+            font-size: 10px;
+            white-space: pre-wrap;
+        }
+
+        /* --- FOOTER: CONTROLS --- */
+        footer {
+            grid-column: 1 / -1;
+            border-top: 1px solid var(--border);
+            display: grid;
+            grid-template-columns: 250px 1fr 300px;
+            align-items: center;
+            padding: 0 15px;
+            background: var(--panel);
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 4px;
+            background: #222;
+            cursor: pointer;
+        }
+
+        .progress-fill { height: 100%; background: var(--accent); width: 0%; }
+
+        button {
+            background: none;
+            border: 1px solid var(--text-dim);
+            color: var(--text-bright);
+            padding: 5px 10px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        button:hover { border-color: var(--accent); color: var(--accent); }
+    </style>
+</head>
+<body>
+
+<header>
+    <div>NIRVANA_OS // AUDIO_ENGINE</div>
+    <div class="status-pill" id="globalStatus">System Idle</div>
+</header>
+
+<nav id="songList">
+    </nav>
+
+<main>
+    <div class="scope-container">
+        <div style="position:absolute; top:10px; left:10px; color:var(--accent)">FREQ_ANALYSIS_LIVE</div>
+        <canvas id="visualizer"></canvas>
+    </div>
+    <div class="progress-container" id="progressContainer">
+        <div class="progress-fill" id="progressFill"></div>
+    </div>
+</main>
+
+<aside>
+    <div class="stat-box">
+        <div class="stat-label">Buffer_Telemetery</div>
+        <div id="bitrate">BITRATE: 320kbps</div>
+        <div id="sample">SAMPLE: 44.1kHz</div>
+    </div>
+    <div class="stat-box" style="flex: 1; display:flex; flex-direction:column;">
+        <div class="stat-label">Lyrics_Stream</div>
+        <div class="lyrics-area" id="lyricsBox">Select a track...</div>
+    </div>
+</aside>
+
+<footer>
+    <div id="currentTrackInfo">NO_SIGNAL</div>
+    <div style="display:flex; justify-content:center; gap:10px;">
+        <button onclick="togglePlay()">PLAY/PAUSE</button>
+        <button onclick="downloadActive()">DOWNLOAD_RAW</button>
+    </div>
+    <div style="text-align: right;">VOL: 85%</div>
+</footer>
+
+<audio id="audioEngine"></audio>
+
+<script>
+    const audio = document.getElementById('audioEngine');
+    const visualizer = document.getElementById('visualizer');
+    const ctx = visualizer.getContext('2d');
+    let audioCtx, analyser, dataArray;
+
+    // --- AUDIO INIT ---
+    async function init() {
+        const res = await fetch('/api/songs');
+        const data = await res.json();
+        const list = document.getElementById('songList');
+        
+        data.songs.forEach(s => {
+            const div = document.createElement('div');
+            div.className = 'track-item';
+            div.innerHTML = `<span>${s.name}</span><span style="color:var(--text-dim)">0${s.id}</span>`;
+            div.onclick = () => playSong(s.id, s.name);
+            list.appendChild(div);
+        });
+    }
+
+    function setupVisualizer() {
+        if (audioCtx) return;
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioCtx.createAnalyser();
+        const source = audioCtx.createMediaElementSource(audio);
+        source.connect(analyser);
+        analyser.connect(audioCtx.destination);
+        analyser.fftSize = 256;
+        dataArray = new Uint8Array(analyser.frequencyBinCount);
+        draw();
+    }
+
+    function draw() {
+        requestAnimationFrame(draw);
+        analyser.getByteFrequencyData(dataArray);
+        ctx.fillStyle = '#0f0f0f';
+        ctx.fillRect(0, 0, visualizer.width, visualizer.height);
+        
+        const barWidth = (visualizer.width / dataArray.length) * 2.5;
+        let x = 0;
+        for(let i = 0; i < dataArray.length; i++) {
+            const barHeight = dataArray[i] / 2;
+            ctx.fillStyle = `rgb(255, 62, 0)`;
+            ctx.fillRect(x, visualizer.height - barHeight, barWidth, barHeight);
+            x += barWidth + 1;
+        }
+    }
+
+    function playSong(id, name) {
+        setupVisualizer();
+        audio.src = `/api/play/${id}`;
+        audio.play();
+        document.getElementById('currentTrackInfo').textContent = name.toUpperCase();
+        document.getElementById('globalStatus').textContent = "Streaming_Active";
+        
+        // Fetch Lyrics
+        fetch(`/lyrics/${id}`).then(r => r.text()).then(t => {
+            document.getElementById('lyricsBox').textContent = t;
+        });
+    }
+
+    function togglePlay() {
+        audio.paused ? audio.play() : audio.pause();
+    }
+
+    // Progress bar logic
+    audio.ontimeupdate = () => {
+        const pct = (audio.currentTime / audio.duration) * 100;
+        document.getElementById('progressFill').style.width = pct + '%';
+    };
+
+    init();
+</script>
+</body>
+</html>

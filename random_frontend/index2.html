@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Music Player Pro</title>
+
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+    font-family: system-ui;
+    background: #0f172a;
+    color: white;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
+}
+
+.app {
+    width: 700px;
+    background: #111827;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+
+h1 { text-align:center; margin-bottom: 10px; }
+
+.player {
+    margin-bottom: 20px;
+}
+
+.progress {
+    width:100%;
+    height:6px;
+    background:#333;
+    border-radius:4px;
+    margin-top:10px;
+    cursor:pointer;
+    position:relative;
+}
+
+.progress-bar {
+    height:100%;
+    background:#22c55e;
+    width:0%;
+    border-radius:4px;
+}
+
+.song-list {
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+}
+
+.song {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:10px;
+    border-radius:10px;
+    background:#1f2937;
+    transition:0.2s;
+}
+
+.song.active {
+    background:#22c55e;
+    color:black;
+}
+
+.controls button {
+    margin-left:8px;
+    cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+    <h1>🎵 Player</h1>
+
+    <div class="player">
+        <audio id="audio"></audio>
+
+        <div id="now">Loading...</div>
+
+        <div class="progress" id="progress">
+            <div class="progress-bar" id="bar"></div>
+        </div>
+    </div>
+
+    <div class="song-list" id="songs"></div>
+</div>
+
+<script>
+const state = {
+    songs: [],
+    current: -1,
+    playing: false
+};
+
+const audio = document.getElementById('audio');
+const songsEl = document.getElementById('songs');
+const nowEl = document.getElementById('now');
+const bar = document.getElementById('bar');
+const progress = document.getElementById('progress');
+
+/* =========================
+   FETCH + INIT
+========================= */
+async function init() {
+    const res = await fetch('/api/songs');
+    const data = await res.json();
+    state.songs = data.songs;
+    render();
+}
+
+/* =========================
+   RENDER
+========================= */
+function render() {
+    songsEl.innerHTML = state.songs.map((s, i) => `
+        <div class="song ${i === state.current ? 'active' : ''}">
+            <span>${i+1}. ${s.name}</span>
+            <div class="controls">
+                <button onclick="play(${i})">▶</button>
+                <button onclick="lyrics(${i})">📜</button>
+                <button onclick="download(${i})">⬇</button>
+            </div>
+        </div>
+    `).join('');
+
+    if (state.current !== -1) {
+        nowEl.textContent = `Playing: ${state.songs[state.current].name}`;
+    }
+}
+
+/* =========================
+   ACTIONS
+========================= */
+function play(i) {
+    state.current = i;
+    audio.src = '/api/play/' + i;
+    audio.play();
+    state.playing = true;
+    render();
+}
+
+function next() {
+    if (state.current + 1 < state.songs.length) {
+        play(state.current + 1);
+    }
+}
+
+function lyrics(i) {
+    fetch('/lyrics/' + i)
+        .then(r => r.text())
+        .then(t => alert(t));
+}
+
+function download(i) {
+    window.location.href = '/download/' + i;
+}
+
+/* =========================
+   EVENTS
+========================= */
+audio.addEventListener('timeupdate', () => {
+    const percent = (audio.currentTime / audio.duration) * 100;
+    bar.style.width = percent + '%';
+});
+
+audio.addEventListener('ended', next);
+
+progress.addEventListener('click', (e) => {
+    const rect = progress.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const percent = x / rect.width;
+    audio.currentTime = percent * audio.duration;
+});
+
+/* =========================
+   KEYBOARD CONTROL
+========================= */
+document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space') {
+        e.preventDefault();
+        if (audio.paused) audio.play();
+        else audio.pause();
+    }
+    if (e.code === 'ArrowRight') next();
+});
+
+/* ========================= */
+init();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLAY</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111;
+    --border: #222;
+    --border-bright: #333;
+    --text: #f0ede6;
+    --muted: #555;
+    --accent: #e8d5a3;
+    --accent2: #c9a84c;
+    --playing: #b5e3c0;
+    --danger: #e87c6a;
+    --mono: 'Space Mono', monospace;
+    --display: 'Bebas Neue', cursive;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    grid-template-rows: auto 1fr auto;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  /* ── HEADER ── */
+  header {
+    grid-column: 1 / -1;
+    border-bottom: 1px solid var(--border-bright);
+    padding: 18px 28px;
+    display: flex;
+    align-items: baseline;
+    gap: 20px;
+  }
+  header h1 {
+    font-family: var(--display);
+    font-size: 52px;
+    letter-spacing: 4px;
+    color: var(--text);
+    line-height: 1;
+  }
+  .header-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .header-meta span {
+    color: var(--muted);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  #song-count {
+    color: var(--accent);
+    font-size: 10px;
+    letter-spacing: 2px;
+  }
+
+  /* ── TRACKLIST ── */
+  #tracklist {
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    max-height: calc(100vh - 180px);
+  }
+  #tracklist::-webkit-scrollbar { width: 3px; }
+  #tracklist::-webkit-scrollbar-track { background: var(--bg); }
+  #tracklist::-webkit-scrollbar-thumb { background: var(--border-bright); }
+
+  .track-row {
+    display: grid;
+    grid-template-columns: 42px 1fr auto auto;
+    align-items: center;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.15s;
+    position: relative;
+  }
+  .track-row:hover { background: #161616; }
+  .track-row.active { background: #151510; }
+  .track-row.active::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--accent);
+  }
+
+  .track-num {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 52px;
+    color: var(--muted);
+    font-size: 11px;
+    border-right: 1px solid var(--border);
+    font-style: italic;
+  }
+  .track-row.active .track-num { color: var(--accent); }
+
+  .track-name {
+    padding: 0 16px;
+    font-size: 13px;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: 0.3px;
+  }
+  .track-row.active .track-name { color: var(--accent); }
+
+  .track-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0 14px;
+    height: 52px;
+    color: var(--muted);
+    font-size: 15px;
+    font-family: var(--mono);
+    transition: color 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .track-btn:hover { color: var(--accent); }
+  .track-btn.dl:hover { color: var(--playing); }
+
+  .loading-state {
+    padding: 40px 28px;
+    color: var(--muted);
+    font-style: italic;
+    font-size: 11px;
+    letter-spacing: 1px;
+  }
+
+  /* ── PLAYER PANEL ── */
+  #player-panel {
+    display: flex;
+    flex-direction: column;
+    padding: 28px 24px;
+    gap: 24px;
+    background: #0d0d0d;
+  }
+
+  .now-playing-label {
+    font-size: 9px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  #np-title {
+    font-family: var(--display);
+    font-size: 34px;
+    letter-spacing: 2px;
+    line-height: 1.1;
+    color: var(--text);
+    min-height: 42px;
+    word-break: break-word;
+  }
+  #np-index {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 4px;
+    letter-spacing: 1px;
+  }
+
+  /* waveform / progress area */
+  .progress-area {
+    position: relative;
+  }
+  #progress-bar {
+    width: 100%;
+    height: 3px;
+    background: var(--border-bright);
+    cursor: pointer;
+    position: relative;
+    margin-bottom: 8px;
+  }
+  #progress-fill {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.1s linear;
+    pointer-events: none;
+  }
+  .time-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  /* visualizer bars */
+  #vis-canvas {
+    width: 100%;
+    height: 60px;
+    display: block;
+  }
+
+  /* controls */
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ctrl-btn {
+    background: none;
+    border: 1px solid var(--border-bright);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 1px;
+    padding: 9px 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: uppercase;
+  }
+  .ctrl-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .ctrl-btn.play-pause {
+    flex: 1;
+    font-family: var(--display);
+    font-size: 18px;
+    letter-spacing: 3px;
+    padding: 12px;
+  }
+  .ctrl-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(232,213,163,0.05);
+  }
+
+  /* volume */
+  .vol-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .vol-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    min-width: 28px;
+  }
+  #vol-slider {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 2px;
+    background: var(--border-bright);
+    outline: none;
+    cursor: pointer;
+  }
+  #vol-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 10px; height: 10px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+  }
+  #vol-val {
+    font-size: 10px;
+    color: var(--muted);
+    min-width: 28px;
+    text-align: right;
+  }
+
+  /* lyrics panel */
+  #lyrics-panel {
+    background: #0d0d0d;
+    border: 1px solid var(--border);
+    padding: 16px;
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.9;
+    color: #888;
+    white-space: pre-wrap;
+    max-height: 180px;
+    overflow-y: auto;
+    display: none;
+    letter-spacing: 0.3px;
+  }
+  #lyrics-panel.show { display: block; }
+  #lyrics-panel::-webkit-scrollbar { width: 2px; }
+  #lyrics-panel::-webkit-scrollbar-thumb { background: var(--border-bright); }
+
+  .lyrics-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .close-lyrics {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1px;
+  }
+  .close-lyrics:hover { color: var(--danger); }
+
+  /* status bar */
+  #status-bar {
+    grid-column: 1 / -1;
+    border-top: 1px solid var(--border);
+    padding: 10px 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1.5px;
+  }
+  #status-msg { text-transform: uppercase; }
+  #status-right { display: flex; gap: 20px; }
+  #loop-indicator { color: var(--muted); }
+  #loop-indicator.on { color: var(--accent); }
+
+  /* shimmer loading */
+  @keyframes shimmer {
+    0% { opacity: 0.4; } 50% { opacity: 0.8; } 100% { opacity: 0.4; }
+  }
+  .shimmer { animation: shimmer 1.5s ease-in-out infinite; }
+
+  /* pulse for active track */
+  @keyframes tick {
+    0%, 100% { opacity: 1; } 50% { opacity: 0; }
+  }
+  .playing-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    margin-right: 6px;
+    animation: tick 1s step-end infinite;
+    vertical-align: middle;
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>PLAY</h1>
+  <div class="header-meta">
+    <span>REST / HTTP</span>
+    <span id="song-count" class="shimmer">LOADING...</span>
+  </div>
+</header>
+
+<main id="tracklist">
+  <div class="loading-state shimmer">// FETCHING TRACKLIST FROM /api/songs</div>
+</main>
+
+<aside id="player-panel">
+  <div>
+    <div class="now-playing-label">Now playing</div>
+    <div id="np-title">—</div>
+    <div id="np-index"></div>
+  </div>
+
+  <canvas id="vis-canvas" width="312" height="60"></canvas>
+
+  <div class="progress-area">
+    <div id="progress-bar">
+      <div id="progress-fill"></div>
+    </div>
+    <div class="time-row">
+      <span id="time-cur">0:00</span>
+      <span id="time-dur">0:00</span>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="ctrl-btn" id="btn-prev" onclick="stepTrack(-1)">PREV</button>
+    <button class="ctrl-btn play-pause" id="btn-play" onclick="togglePlay()">PLAY</button>
+    <button class="ctrl-btn" id="btn-next" onclick="stepTrack(1)">NEXT</button>
+    <button class="ctrl-btn" id="btn-loop" onclick="toggleLoop()">LOOP</button>
+  </div>
+
+  <div class="vol-row">
+    <span class="vol-label">VOL</span>
+    <input type="range" id="vol-slider" min="0" max="100" value="80" step="1">
+    <span id="vol-val">80</span>
+  </div>
+
+  <div id="lyrics-panel">
+    <div class="lyrics-header">
+      <span>LYRICS</span>
+      <button class="close-lyrics" onclick="closeLyrics()">CLOSE</button>
+    </div>
+    <div id="lyrics-text"></div>
+  </div>
+</aside>
+
+<footer id="status-bar">
+  <span id="status-msg">READY</span>
+  <div id="status-right">
+    <span id="loop-indicator">LOOP: OFF</span>
+    <span id="shuffle-indicator">SHUFFLE: OFF</span>
+  </div>
+</footer>
+
+<audio id="audio-engine" preload="auto"></audio>
+
+<script>
+const audio = document.getElementById('audio-engine');
+const tracklist = document.getElementById('tracklist');
+const npTitle = document.getElementById('np-title');
+const npIndex = document.getElementById('np-index');
+const progressFill = document.getElementById('progress-fill');
+const timeCur = document.getElementById('time-cur');
+const timeDur = document.getElementById('time-dur');
+const btnPlay = document.getElementById('btn-play');
+const statusMsg = document.getElementById('status-msg');
+const loopIndicator = document.getElementById('loop-indicator');
+const songCount = document.getElementById('song-count');
+const lyricsPanel = document.getElementById('lyrics-panel');
+const lyricsText = document.getElementById('lyrics-text');
+const volSlider = document.getElementById('vol-slider');
+const volVal = document.getElementById('vol-val');
+const progressBar = document.getElementById('progress-bar');
+const canvas = document.getElementById('vis-canvas');
+const ctx2d = canvas.getContext('2d');
+
+let songs = [];
+let currentIndex = -1;
+let loopMode = false;
+let isPlaying = false;
+
+// ── AUDIO CONTEXT FOR VISUALIZER
+let audioCtx, analyser, source, dataArr;
+function setupAnalyser() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 64;
+  dataArr = new Uint8Array(analyser.frequencyBinCount);
+  source = audioCtx.createMediaElementSource(audio);
+  source.connect(analyser);
+  analyser.connect(audioCtx.destination);
+}
+
+function drawVis() {
+  requestAnimationFrame(drawVis);
+  const W = canvas.width, H = canvas.height;
+  ctx2d.clearRect(0, 0, W, H);
+  if (!analyser || !isPlaying) {
+    ctx2d.fillStyle = '#1a1a1a';
+    const bars = 32, bw = W / bars - 2;
+    for (let i = 0; i < bars; i++) {
+      ctx2d.fillRect(i * (bw + 2), H - 3, bw, 3);
+    }
+    return;
+  }
+  analyser.getByteFrequencyData(dataArr);
+  const bars = dataArr.length, bw = W / bars - 1;
+  for (let i = 0; i < bars; i++) {
+    const v = dataArr[i] / 255;
+    const bh = Math.max(3, v * H);
+    const alpha = 0.4 + v * 0.6;
+    ctx2d.fillStyle = `rgba(232, 213, 163, ${alpha})`;
+    ctx2d.fillRect(i * (bw + 1), H - bh, bw, bh);
+  }
+}
+drawVis();
+
+// ── LOAD SONGS
+async function loadSongs() {
+  try {
+    const res = await fetch('/api/songs');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    songs = data.songs;
+    songCount.textContent = songs.length + ' TRACKS';
+    songCount.classList.remove('shimmer');
+    renderTracklist();
+    setStatus('LOADED — ' + songs.length + ' TRACKS');
+  } catch (e) {
+    tracklist.innerHTML = '<div class="loading-state" style="color:#e87c6a">// ERROR: ' + e.message + '</div>';
+    setStatus('ERROR: ' + e.message);
+  }
+}
+
+function renderTracklist() {
+  tracklist.innerHTML = '';
+  songs.forEach((song, i) => {
+    const row = document.createElement('div');
+    row.className = 'track-row';
+    row.id = 'row-' + i;
+    row.innerHTML = `
+      <div class="track-num">${String(i + 1).padStart(2, '0')}</div>
+      <div class="track-name" title="${song.name}">${song.name}</div>
+      <button class="track-btn" onclick="event.stopPropagation(); fetchLyrics(${song.id})" title="Lyrics">LRC</button>
+      <button class="track-btn dl" onclick="event.stopPropagation(); doDownload(${song.id}, '${song.mp3}')" title="Download">DL</button>
+    `;
+    row.addEventListener('click', () => playIndex(i));
+    tracklist.appendChild(row);
+  });
+}
+
+// ── PLAY
+function playIndex(i) {
+  if (i < 0 || i >= songs.length) return;
+  currentIndex = i;
+  const song = songs[i];
+
+  document.querySelectorAll('.track-row').forEach(r => r.classList.remove('active'));
+  const row = document.getElementById('row-' + i);
+  if (row) {
+    row.classList.add('active');
+    row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    const numEl = row.querySelector('.track-num');
+    numEl.innerHTML = '<span class="playing-dot"></span>';
+  }
+
+  audio.src = '/api/play/' + song.id;
+  audio.volume = volSlider.value / 100;
+
+  if (!audioCtx) setupAnalyser();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+
+  audio.play().then(() => {
+    isPlaying = true;
+    btnPlay.textContent = 'PAUSE';
+    npTitle.textContent = song.name;
+    npIndex.textContent = (i + 1) + ' / ' + songs.length;
+    setStatus('PLAYING: ' + song.name.toUpperCase());
+    closeLyrics();
+  }).catch(e => setStatus('PLAYBACK ERROR'));
+}
+
+function togglePlay() {
+  if (currentIndex === -1 && songs.length) { playIndex(0); return; }
+  if (audio.paused) {
+    audio.play();
+    isPlaying = true;
+    btnPlay.textContent = 'PAUSE';
+    setStatus('RESUMED');
+  } else {
+    audio.pause();
+    isPlaying = false;
+    btnPlay.textContent = 'PLAY';
+    setStatus('PAUSED');
+  }
+}
+
+function stepTrack(dir) {
+  let next = currentIndex + dir;
+  if (next < 0) next = songs.length - 1;
+  if (next >= songs.length) next = 0;
+  playIndex(next);
+}
+
+function toggleLoop() {
+  loopMode = !loopMode;
+  audio.loop = loopMode;
+  const btn = document.getElementById('btn-loop');
+  btn.classList.toggle('active', loopMode);
+  loopIndicator.textContent = 'LOOP: ' + (loopMode ? 'ON' : 'OFF');
+  loopIndicator.classList.toggle('on', loopMode);
+}
+
+// ── AUDIO EVENTS
+audio.addEventListener('timeupdate', () => {
+  if (!audio.duration) return;
+  const pct = (audio.currentTime / audio.duration) * 100;
+  progressFill.style.width = pct + '%';
+  timeCur.textContent = fmt(audio.currentTime);
+  timeDur.textContent = fmt(audio.duration);
+});
+
+audio.addEventListener('ended', () => {
+  if (!loopMode) {
+    isPlaying = false;
+    btnPlay.textContent = 'PLAY';
+    if (currentIndex < songs.length - 1) {
+      stepTrack(1);
+    } else {
+      setStatus('END OF TRACKLIST');
+      const row = document.getElementById('row-' + currentIndex);
+      if (row) {
+        row.classList.remove('active');
+        row.querySelector('.track-num').textContent = String(currentIndex + 1).padStart(2, '0');
+      }
+    }
+  }
+});
+
+audio.addEventListener('error', () => {
+  isPlaying = false;
+  btnPlay.textContent = 'PLAY';
+  setStatus('ERROR LOADING TRACK');
+});
+
+// ── PROGRESS SEEK
+progressBar.addEventListener('click', e => {
+  if (!audio.duration) return;
+  const rect = progressBar.getBoundingClientRect();
+  const pct = (e.clientX - rect.left) / rect.width;
+  audio.currentTime = pct * audio.duration;
+});
+
+// ── VOLUME
+volSlider.addEventListener('input', () => {
+  audio.volume = volSlider.value / 100;
+  volVal.textContent = volSlider.value;
+});
+
+// ── LYRICS
+async function fetchLyrics(songId) {
+  try {
+    const res = await fetch('/lyrics/' + songId);
+    if (!res.ok) throw new Error('Not found');
+    const text = await res.text();
+    lyricsText.textContent = text;
+    lyricsPanel.classList.add('show');
+    setStatus('LYRICS LOADED');
+  } catch (e) {
+    lyricsText.textContent = '// NO LYRICS AVAILABLE FOR THIS TRACK';
+    lyricsPanel.classList.add('show');
+  }
+}
+function closeLyrics() { lyricsPanel.classList.remove('show'); }
+
+// ── DOWNLOAD
+function doDownload(songId, filename) {
+  window.location.href = '/download/' + songId;
+  setStatus('DL: ' + filename);
+}
+
+// ── KEYBOARD
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+  if (e.code === 'ArrowRight') stepTrack(1);
+  if (e.code === 'ArrowLeft') stepTrack(-1);
+  if (e.code === 'KeyL') toggleLoop();
+});
+
+// ── UTILS
+function fmt(s) {
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return m + ':' + String(sec).padStart(2, '0');
+}
+function setStatus(msg) { statusMsg.textContent = msg; }
+
+loadSongs();
+</script>
+</body>
+</html>
