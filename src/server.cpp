@@ -69,7 +69,7 @@ bool TcpServer::start(){
         close(server_socket);
         return false;
     }
-    if (listen(server_socket,10)<0){
+    if (listen(server_socket,SOMAXCONN)<0){
         perror("listen");
         close(server_socket);
         return false;
